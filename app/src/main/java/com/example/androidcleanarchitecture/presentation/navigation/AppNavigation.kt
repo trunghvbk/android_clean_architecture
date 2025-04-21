@@ -11,6 +11,7 @@ import com.example.androidcleanarchitecture.di.ViewModelFactory
 import com.example.androidcleanarchitecture.domain.entity.User
 import com.example.androidcleanarchitecture.presentation.ui.UserDetailScreen
 import com.example.androidcleanarchitecture.presentation.ui.UserListScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.androidcleanarchitecture.presentation.viewmodel.UserDetailViewModel
 import com.example.androidcleanarchitecture.presentation.viewmodel.UserListViewModel
 
@@ -28,19 +29,17 @@ fun AppNavigation(viewModelFactory: ViewModelFactory) {
     ) {
         // User List Screen
         composable(route = Screen.UserList.route) {
-            val viewModel = androidx.lifecycle.viewmodel.compose.viewModel<UserListViewModel>(
+            val viewModel = viewModel<UserListViewModel>(
                 factory = viewModelFactory
             )
             
             UserListScreen(
                 viewModel = viewModel,
                 onUserClick = { user ->
-                    // Navigate to user detail with user ID, name, and email as arguments
+                    // Navigate to user detail with user ID
                     navController.navigate(
                         Screen.UserDetail.createRoute(
                             id = user.id,
-                            name = user.name,
-                            email = user.email
                         )
                     )
                 },
@@ -52,30 +51,23 @@ fun AppNavigation(viewModelFactory: ViewModelFactory) {
             route = Screen.UserDetail.route,
             arguments = listOf(
                 navArgument("id") { type = NavType.IntType },
-                navArgument("name") { type = NavType.StringType },
-                navArgument("email") { type = NavType.StringType }
             )
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.getInt("id") ?: -1
-            val name = backStackEntry.arguments?.getString("name") ?: ""
-            val email = backStackEntry.arguments?.getString("email") ?: ""
-            
-            val user = User(id = id, name = name, email = email)
-            
-            val viewModel = androidx.lifecycle.viewmodel.compose.viewModel<UserDetailViewModel>(
+            val viewModel = viewModel<UserDetailViewModel>(
                 factory = viewModelFactory
             )
             
             UserDetailScreen(
                 viewModel = viewModel,
-                userId = user.id,
+                userId = id,
                 onNavigateBack = { navController.popBackStack() },
             )
         }
         
         // User Add Screen (Create new user)
         composable(route = Screen.UserAdd.route) {
-            val viewModel = androidx.lifecycle.viewmodel.compose.viewModel<UserDetailViewModel>(
+            val viewModel = viewModel<UserDetailViewModel>(
                 factory = viewModelFactory
             )
             
@@ -94,9 +86,9 @@ fun AppNavigation(viewModelFactory: ViewModelFactory) {
 sealed class Screen(val route: String) {
     data object UserList : Screen("user_list")
     data object UserAdd : Screen("user_add")
-    data object UserDetail : Screen("user_detail/{id}/{name}/{email}") {
-        fun createRoute(id: Int, name: String, email: String): String {
-            return "user_detail/$id/$name/$email"
+    data object UserDetail : Screen("user_detail/{id}") {
+        fun createRoute(id: Int): String {
+            return "user_detail/$id"
         }
     }
 }
