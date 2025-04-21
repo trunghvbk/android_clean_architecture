@@ -1,106 +1,151 @@
-# Enhanced Network Error Handling for Android Clean Architecture
+# Android Clean Architecture with Kotlin
 
-This project demonstrates an improved network error handling implementation for Android Clean Architecture. The implementation provides comprehensive error categorization, context, propagation, and handling across all layers of the application.
+This project demonstrates the implementation of Clean Architecture principles in an Android application using Kotlin. The UI is built with Jetpack Compose, providing a modern, declarative approach to building Android UIs.
 
-## Key Features
+## Project Structure
 
-- **Detailed Error Categorization**: Different types of network errors (connectivity, timeout, client errors, server errors) are properly categorized
-- **Rich Error Context**: Error messages include both user-friendly messages and technical details
-- **Proper Error Propagation**: Errors flow consistently through all architectural layers
-- **Graceful Fallbacks**: Network-first strategy with local fallbacks for offline support
-- **Type-Safe Error Handling**: Using Kotlin's sealed classes and Result type
-- **User-Friendly Error UI**: Contextual error messages with appropriate actions based on error type
+The project follows Clean Architecture principles with a clear separation of concerns across three main layers:
 
-## Implementation Overview
+### 1. Presentation Layer
+- **UI Components**: Built with Jetpack Compose
+- **ViewModels**: Handle UI-related data and state management
+- **Navigation**: Handles screen navigation using Jetpack Navigation Compose
 
-The error handling implementation follows clean architecture principles with proper separation of concerns across data, domain, and presentation layers:
-
-### Data Layer
-
-- **NetworkError**: Sealed class hierarchy for different error types
-- **ErrorResponse**: Model for structured API error responses
-- **NetworkException**: Custom exception for network errors
-- **NetworkResult**: Wrapper for network responses with enhanced error handling
-- **UserDataSource**: Updated to use Result<T> for better error propagation
-- **UserNetworkDataSource**: Implements error mapping from network to domain
-
-### Domain Layer
-
-- **Resource**: Enhanced wrapper with detailed error types for domain operations
-- **UserRepository**: Updated interface for consistent error handling
-
-### Repository Layer
-
-- **UserRepositoryImpl**: Implements network-first strategy with local fallbacks and proper error mapping
-
-### Presentation Layer
-
-- **ViewModels**: Handle different error types and provide appropriate UI states
-- **UI Components**: Display contextual error messages with retry options when appropriate
-
-## Error Types
-
-The implementation handles the following error types:
-
-- **Network Connectivity**: No internet connection
-- **Timeout**: Request took too long to complete
-- **Unknown Host**: Could not resolve the host name
-- **Client Errors**: 4xx HTTP status codes
-  - 401: Unauthorized
-  - 403: Forbidden
-  - 404: Not Found
-  - 422: Validation Error
-- **Server Errors**: 5xx HTTP status codes
-- **Parse Errors**: Response could not be parsed
-- **Unknown Errors**: Any other unexpected errors
-
-## Usage
-
-The error handling system is fully integrated with the existing clean architecture components and requires no special handling from the UI layer. The presentation layer has been updated to handle network states automatically.
-
-### Example: Handling Errors in ViewModels
-
-```kotlin
-viewModelScope.launch {
-    when (val result = getUserByIdUseCase(userId)) {
-        is Resource.Success -> {
-            // Handle success case
-        }
-        is Resource.Error -> {
-            // Handle error based on type
-            when (result.errorType) {
-                Resource.ErrorType.NETWORK_ERROR -> {
-                    // Show network error UI with retry option
-                }
-                Resource.ErrorType.SERVER_ERROR -> {
-                    // Show server error UI
-                }
-                Resource.ErrorType.NOT_FOUND -> {
-                    // Show not found UI
-                }
-                // Handle other error types...
-            }
-        }
-        is Resource.Loading -> {
-            // Show loading UI
-        }
-    }
-}
+```
+com.example.androidcleanarchitecture.presentation
+├── navigation       # Navigation components and screen routes
+├── ui               # Compose UI screens and components
+│   ├── theme        # Theme definitions (colors, typography, shapes)
+│   ├── UserListScreen.kt
+│   └── UserDetailScreen.kt
+└── viewmodel        # ViewModels for each screen
+    ├── UserListViewModel.kt
+    └── UserDetailViewModel.kt
 ```
 
-### Example: Displaying Errors in UI
+### 2. Domain Layer
+- **Entities**: Core business models
+- **Use Cases**: Business logic operations
+- **Repository Interfaces**: Define data operation contracts
 
-The UI components have been updated to display appropriate error messages based on the error type:
-
-```kotlin
-@Composable
-fun ErrorView(
-    message: String,
-    errorType: Resource.ErrorType,
-    isRetryable: Boolean,
-    onRetry: () -> Unit
-) {
-    // Display error UI with context-specific message and actions
-    // See UserListScreen.kt for full implementation
-}
 ```
+com.example.androidcleanarchitecture.domain
+├── entity           # Business models
+│   └── User.kt
+├── repository       # Repository interfaces
+│   └── UserRepository.kt
+├── usecase          # Business logic use cases
+│   ├── DeleteUserUseCase.kt
+│   ├── GetAllUsersUseCase.kt
+│   ├── GetUserByIdUseCase.kt
+│   └── SaveUserUseCase.kt
+└── util             # Domain utilities
+    └── Resource.kt  # Operation state wrapper
+```
+
+### 3. Data Layer
+- **Repositories**: Implementation of domain repositories
+- **Data Sources**: Local and network data providers
+- **Models**: Data transfer objects
+- **Mappers**: Convert between data and domain models
+- **Network**: API services and network utilities
+
+```
+com.example.androidcleanarchitecture.data
+├── datasource       # Data source implementations
+│   ├── UserDataSource.kt        # Common interface
+│   ├── UserLocalDataSource.kt   # Local storage implementation
+│   └── UserNetworkDataSource.kt # Network implementation
+├── mapper           # Data mappers
+│   ├── UserMapper.kt
+│   └── UserNetworkMapper.kt
+├── model            # Data models
+│   ├── UserModel.kt
+│   └── UserNetworkModel.kt
+├── network          # Network components
+│   ├── ApiServiceFactory.kt
+│   ├── NetworkConnectivityChecker.kt
+│   ├── NetworkResult.kt
+│   └── UserApiService.kt
+└── repository       # Repository implementations
+    └── UserRepositoryImpl.kt
+```
+
+### 4. Dependency Injection
+- **ServiceLocator**: Simple DI implementation
+- **ViewModelFactory**: Factory for creating ViewModels with dependencies
+
+```
+com.example.androidcleanarchitecture.di
+├── ServiceLocator.kt
+└── ViewModelFactory.kt
+```
+
+## Clean Architecture Explained
+
+This project implements Clean Architecture, a software design philosophy that separates concerns into distinct layers:
+
+### Core Principles
+
+1. **Independence of Frameworks**: The business logic doesn't depend on UI, database, or external frameworks.
+2. **Testability**: Business rules can be tested without UI, database, or external dependencies.
+3. **Independence of UI**: The UI can change without changing the business rules.
+4. **Independence of Database**: Business rules don't depend on the database implementation.
+5. **Independence of External Agencies**: Business rules don't know anything about the outside world.
+
+### Layer Dependencies
+
+The dependencies flow from outer layers to inner layers:
+- **Presentation Layer** → depends on → **Domain Layer**
+- **Data Layer** → depends on → **Domain Layer**
+- **Domain Layer** depends on nothing (it's the core)
+
+This ensures that inner layers (domain) remain independent of implementation details in outer layers (data, presentation).
+
+### Data Flow
+
+1. **UI** triggers an action
+2. **ViewModel** processes the action and calls appropriate **Use Case**
+3. **Use Case** executes business logic using **Repository** interface
+4. **Repository Implementation** coordinates data from **Data Sources**
+5. **Data Sources** interact with local storage or network API
+6. Data flows back up through the layers, with each layer mapping to its own models
+
+## Jetpack Compose UI
+
+This project uses Jetpack Compose, Android's modern toolkit for building native UI:
+
+### Key Features Used
+
+- **Declarative UI**: UI components are defined as functions that transform state into UI
+- **State Management**: Using StateFlow with collectAsState() for reactive UI updates
+- **Composable Functions**: Reusable UI components built with @Composable functions
+- **Material Design Components**: Using Material3 design system
+- **Navigation**: Implemented with Navigation Compose
+
+### UI Components
+
+- **UserListScreen**: Displays a list of users with loading, error, and empty states
+- **UserDetailScreen**: Shows user details and provides editing capabilities
+- **Theme**: Custom theme with colors, typography, and shapes
+
+## Network Layer Implementation
+
+The network layer has been implemented following clean architecture principles with proper separation of concerns:
+
+### Key Components
+
+- **UserNetworkModel**: Represents user data as received from the API
+- **UserApiService**: Defines API endpoints using Retrofit annotations
+- **ApiServiceFactory**: Creates and configures Retrofit and OkHttp clients
+- **UserNetworkDataSource**: Implements UserDataSource interface for network operations
+- **NetworkResult**: Sealed class for handling network responses (Success, Error, Loading)
+- **Resource**: Domain-level wrapper for operation states (Success, Error, Loading)
+
+### Network Strategy
+
+The implementation uses a network-first strategy:
+1. Try to fetch data from the network first
+2. If successful, cache the data locally
+3. If network fails, fall back to local data
+4. For save/delete operations, attempt both network and local operations
